@@ -62,6 +62,12 @@
             </div>
         @endif
 
+@if (session('warning'))
+            <div class="alert alert-warning" role="alert">
+                {{ session('warning') }}
+            </div>
+        @endif
+
 
 
             <form action="{{ route('temperaturas.store') }}" method="POST">
@@ -83,10 +89,10 @@
                     <label for="edificio" class="form-label">Edificio</label>
                     <select class="form-select" id="edificio" name="edificio" required>
                         <option value="">Seleccione un edificio</option>
-                        <option value="B">B</option>
-                        <option value="C">C</option>
+                        <option value="B" disabled>B</option>
+                        <option value="C" disabled>C</option>
                         <option value="D">D</option>
-                        <option value="Anexo">Anexo</option>
+                        <option value="Anexo"disabled>Anexo</option>
                     </select>
                 </div>
 
