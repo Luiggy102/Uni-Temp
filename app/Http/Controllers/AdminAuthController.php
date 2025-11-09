@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Session;
 class AdminAuthController extends Controller
 {
     private $ADMIN_USER = 'admin';
-    private $ADMIN_PASS = '12345';
+    private $ADMIN_PASS = 'admin12345';
     // ---------------------------------------------
 
     /**
