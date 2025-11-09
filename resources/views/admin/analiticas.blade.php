@@ -6,12 +6,14 @@
     <title>Analíticas de Temperaturas</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+        <link rel="icon" href="{{ asset('images/favicon.webp') }}">
 </head>
 <body class="bg-light">
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Panel de Administrador</a>
+            <a class="navbar-brand" href="#">Panel de Administrador Ecotec IOT</a>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
@@ -19,6 +21,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link active" href="{{ route('admin.analiticas') }}">Analíticas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link " href="{{ route('aulas.index') }}">Gestión de Aulas</a>
                     </li>
                 </ul>
             </div>

@@ -18,12 +18,13 @@
             border-radius: .5rem;
         }
     </style>
+        <link rel="icon" href="{{ asset('images/favicon.webp') }}">
 </head>
 <body class="bg-light">
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Panel de Administrador</a>
+            <a class="navbar-brand" href="#">Panel de Administrador Ecotec IOT</a>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">

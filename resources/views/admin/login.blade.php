@@ -13,7 +13,7 @@
             <div class="col-md-6 col-lg-4">
                 <div class="card shadow-sm">
                     <div class="card-header bg-primary text-white text-center">
-                        <h4 class="mb-0">Acceso de Administrador</h4>
+                        <h4 class="mb-0">Acceso de admin Ecotec IOT</h4>
                     </div>
                     <div class="card-body p-4">
                         

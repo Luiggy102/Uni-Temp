@@ -41,22 +41,20 @@ class DashboardController extends Controller
      */
     private function getAulas(): array
     {
-        // (Esta lógica es la misma que la de UniversidadController)
         $tableName = 'aulas_ecotec_iot';
         $aulas = [];
+        $params = ['TableName' => $tableName];
 
         try {
-            $result = $this->dynamoDb->scan(['TableName' => $tableName]);
+            do {
+                $result = $this->dynamoDb->scan($params);
 
-            foreach ($result['Items'] as $item) {
-                $aulas[] = [
-                    'id' => $this->marshaler->unmarshalValue($item['id']),
-                    'nombre' => $this->marshaler->unmarshalValue($item['nombreAula']),
-                ];
-            }
+                foreach ($result['Items'] as $item) {
+                    $aulas[] = $this->unmarshalItem($item);
+                }
 
-            // Ordena las aulas alfabéticamente por nombre
-            usort($aulas, fn($a, $b) => $a['nombre'] <=> $b['nombre']);
+                $params['ExclusiveStartKey'] = $result['LastEvaluatedKey'] ?? null;
+            } while ($params['ExclusiveStartKey']);
 
         } catch (\Exception $e) {
             report($e); // Reporta el error
@@ -64,6 +62,7 @@ class DashboardController extends Controller
         }
 
         return $aulas;
+
     }
 
     /**

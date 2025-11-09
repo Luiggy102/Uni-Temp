@@ -10,6 +10,7 @@
     <link href="https://cdn.datatables.net/2.0.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/buttons/3.0.2/css/buttons.bootstrap5.min.css" rel="stylesheet">
 
+        <link rel="icon" href="{{ asset('images/favicon.webp') }}">
     <style>
         /* Estilos para los filtros */
         .filters {
@@ -23,15 +24,17 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Panel de Administrador</a>
+            <a class="navbar-brand" href="#">Panel de Administrador Ecotec IOT</a>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
                         <a class="nav-link active" href="{{ route('admin.dashboard') }}">Temperaturas</a>
                     </li>
-
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ route('admin.analiticas') }}">Analíticas</a>
+                        <a class="nav-link " href="{{ route('admin.analiticas') }}">Analíticas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link " href="{{ route('aulas.index') }}">Gestión de Aulas</a>
                     </li>
                </ul>
             </div>
@@ -48,27 +51,41 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label for="filtro-aula" class="form-label">Filtrar por Aula:</label>
-                        <select class="form-select" id="filtro-aula">
-                            <option value="">-- Todas las Aulas --</option>
-                            @foreach($aulas as $aula)
-                                <option value="{{ $aula['nombre'] }}">{{ $aula['nombre'] }}</option>
-                            @endforeach
+                        <label for="filtro-campus" class="form-label">Campus:</label>
+                        <select class="form-select" id="filtro-campus">
+                            <option value="">-- Todos los Campus --</option>
+                            {{-- Se llenará con JS --}}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3" id="filtro-edificio-wrapper" style="display: none;">
+                        <label for="filtro-edificio" class="form-label">Edificio:</label>
+                        <select class="form-select" id="filtro-edificio">
+                            <option value="">-- Todos los Edificios --</option>
+                            {{-- Se llenará con JS --}}
                         </select>
                     </div>
 
                     <div class="col-md-3">
+                        <label for="filtro-aula" class="form-label">Aula:</label>
+                        <select class="form-select" id="filtro-aula">
+                            <option value="">-- Todas las Aulas --</option>
+                            {{-- Se llenará con JS --}}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
                         <label for="filtro-fecha-desde" class="form-label">Desde:</label>
                         <input type="date" class="form-control" id="filtro-fecha-desde">
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label for="filtro-fecha-hasta" class="form-label">Hasta:</label>
                         <input type="date" class="form-control" id="filtro-fecha-hasta">
                     </div>
 
-                    <div class="col-md-3">
-                        <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
+                    <div class="col-md-2 d-flex">
+                        <button class="btn btn-primary me-2" id="btn-filtrar-fecha">Filtrar</button>
                         <button class="btn btn-secondary" id="btn-limpiar">Limpiar</button>
                     </div>
                 </div>
@@ -125,90 +142,178 @@
 
 
     <script>
+const allAulas = {!! json_encode($aulas ?? []) !!};
+
         $(document).ready(function() {
             
             // --- INICIALIZACIÓN DE DATATABLES ---
             var table = $('#temperaturas-table').DataTable({
-                // Habilita los botones
-                dom: 'lBfrtip', // 'l' - length, 'B' - buttons, 'f' - filter, 'r' - processing, 't' - table, 'i' - info, 'p' - pagination
+                dom: 'lBfrtip',
                 buttons: [
                     {
                         extend: 'excelHtml5',
-                        text: '<i class="bi bi-file-earmark-excel-fill"></i> Exportar a Excel',
+                        text: 'Exportar a Excel',
                         className: 'btn btn-success'
                     },
                     {
                         extend: 'pdfHtml5',
-                        text: '<i class="bi bi-file-earmark-pdf-fill"></i> Exportar a PDF',
+                        text: 'Exportar a PDF',
                         className: 'btn btn-danger',
-                         orientation: 'landscape', // 1. Pone la hoja horizontal
-                        pageSize: 'LEGAL' // 2. (Opcional) Usa un papel más ancho
+                        orientation: 'landscape',
+                        pageSize: 'LEGAL'
                     }
                 ],
-                // Configura el idioma a español
                 language: {
                     url: 'https://cdn.datatables.net/plug-ins/2.0.8/i18n/es-ES.json'
                 }
             });
 
-            // --- LÓGICA DE FILTROS PERSONALIZADOS ---
+            // --- REFERENCIAS A LOS FILTROS ---
+            const $campusFilter = $('#filtro-campus');
+            const $edificioWrapper = $('#filtro-edificio-wrapper');
+            const $edificioFilter = $('#filtro-edificio');
+            const $aulaFilter = $('#filtro-aula');
+            
+            const FECHA_COL = 1, CAMPUS_COL = 2, EDIFICIO_COL = 3, AULA_COL = 4;
+            
+            const campusMap = {
+                'sambo': 'Samborondón',
+                'costa': 'Costa',
+                'guayaquil': 'Guayaquil'
+            };
 
-            // Índice de la columna 'Aula' (empezando en 0)
-            const AULA_COL_INDEX = 4;
-            // Índice de la columna 'Fecha'
-            const FECHA_COL_INDEX = 1;
-
-            // Filtro para el Dropdown de Aula
-            $('#filtro-aula').on('change', function() {
-                var valor = $(this).val();
-                // Busca en la columna de Aula (índice 4), con búsqueda exacta
-               //  table.column(AULA_COL_INDEX).search(valor ? '^' + valor + '$' : '', true, false).draw();
-               table.column(AULA_COL_INDEX).search(valor).draw();
+            // --- PASO 1: Llenar el dropdown de Campus ---
+            const campusUnicos = [...new Set(allAulas.map(aula => aula.campus))];
+            campusUnicos.sort().forEach(function(campusValue) {
+                const campusTexto = campusMap[campusValue] || campusValue;
+                $campusFilter.append(new Option(campusTexto, campusValue));
             });
 
-            // Filtro para rango de fechas
-            // Necesita una función de búsqueda personalizada
+            // --- PASO 2: Lógica cuando cambia el Campus ---
+            $campusFilter.on('change', function() {
+                const selectedCampus = $(this).val();
+                table.column(CAMPUS_COL).search(selectedCampus).draw();
+
+                $edificioFilter.empty().append(new Option('-- Todos los Edificios --', ''));
+                $aulaFilter.empty().append(new Option('-- Todas las Aulas --', ''));
+                table.column(EDIFICIO_COL).search('').draw();
+                table.column(AULA_COL).search('').draw();
+
+                if (selectedCampus === 'sambo') {
+                    const edificiosUnicos = [...new Set(
+                        allAulas
+                            .filter(a => a.campus === 'sambo' && a.edificio !== 'N/A')
+                            .map(a => a.edificio)
+                    )];
+                    edificiosUnicos.sort().forEach(function(edificio) {
+                        $edificioFilter.append(new Option(edificio, edificio));
+                    });
+                    $edificioWrapper.show();
+                } else if (selectedCampus) {
+                    $edificioWrapper.hide();
+                    // Llenar Aulas directamente
+                    const aulasDeCampus = allAulas.filter(a => a.campus === selectedCampus);
+                    
+                    // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                    aulasDeCampus.sort((a, b) => a.nombreAula.localeCompare(b.nombreAula));
+                    
+                    aulasDeCampus.forEach(function(aula) {
+                        // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                        $aulaFilter.append(new Option(aula.nombreAula, aula.nombreAula));
+                    });
+                } else {
+                    $edificioWrapper.hide();
+                    // Llenar todas las aulas
+                    // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                    allAulas.sort((a, b) => a.nombreAula.localeCompare(b.nombreAula));
+                    allAulas.forEach(function(aula) {
+                        // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                        $aulaFilter.append(new Option(aula.nombreAula, aula.nombreAula));
+                    });
+                }
+            });
+
+            // --- PASO 3: Lógica cuando cambia el Edificio ---
+            $edificioFilter.on('change', function() {
+                const selectedCampus = $campusFilter.val();
+                const selectedEdificio = $(this).val();
+
+                table.column(EDIFICIO_COL).search(selectedEdificio).draw();
+                $aulaFilter.empty().append(new Option('-- Todas las Aulas --', ''));
+                table.column(AULA_COL).search('').draw();
+
+                if (selectedEdificio) {
+                    const aulasDeEdificio = allAulas.filter(a => 
+                        a.campus === selectedCampus && a.edificio === selectedEdificio
+                    );
+                    // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                    aulasDeEdificio.sort((a, b) => a.nombreAula.localeCompare(b.nombreAula));
+                    aulasDeEdificio.forEach(function(aula) {
+                        // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                        $aulaFilter.append(new Option(aula.nombreAula, aula.nombreAula));
+                    });
+                }
+            });
+
+            // --- PASO 4: Lógica cuando cambia el Aula ---
+            $aulaFilter.on('change', function() {
+                // El valor aquí es el 'nombreAula', pero la columna de la tabla
+                // de temperaturas (AULA_COL = 4) tiene el 'aula', ¡que debería ser lo mismo!
+                // Si esto no funciona, revisa tu DashboardController@getAllTemperaturas
+                // para asegurarte que $temp['aula'] contiene el nombre del aula.
+                table.column(AULA_COL).search($(this).val()).draw();
+            });
+
+            // --- LÓGICA DE FILTROS DE FECHA ---
             $.fn.dataTable.ext.search.push(
                 function(settings, data, dataIndex) {
+                    // ... (esta lógica de fecha se queda igual) ...
                     var min = $('#filtro-fecha-desde').val();
                     var max = $('#filtro-fecha-hasta').val();
-                    var fecha = data[FECHA_COL_INDEX] || ''; // Obtiene la fecha de la tabla (índice 1)
-
-                    // Extrae solo la parte de la fecha (YYYY-MM-DD)
-                    var fechaSolo = fecha.split(' ')[0]; 
-
-                    if (
-                        (min === '' || min === null) && (max === '' || max === null) ||
-                        (min === '' || min === null) && fechaSolo <= max ||
-                        (min <= fechaSolo) && (max === '' || max === null) ||
-                        (min <= fechaSolo) && (fechaSolo <= max)
-                    ) {
-                        return true; // Mostrar fila
+                    var fecha = data[FECHA_COL] || '';
+                    var fechaSolo = fecha.split(' ')[0];
+                    if ( (min === '' || min === null) && (max === '' || max === null) ||
+                         (min === '' || min === null) && fechaSolo <= max ||
+                         (min <= fechaSolo) && (max === '' || max === null) ||
+                         (min <= fechaSolo) && (fechaSolo <= max) ) {
+                        return true;
                     }
-                    return false; // Ocultar fila
+                    return false;
                 }
             );
 
-            // Botón para aplicar el filtro de fechas
-            $('#btn-filtrar').on('click', function() {
-                table.draw(); // Vuelve a dibujar la tabla, aplicando el filtro de fechas
-            });
-
-            // Botón para limpiar todos los filtros
-            $('#btn-limpiar').on('click', function() {
-                // Limpia los inputs
-                $('#filtro-aula').val('');
-                $('#filtro-fecha-desde').val('');
-                $('#filtro-fecha-hasta').val('');
-                
-                // Limpia el filtro de DataTables
-                table.column(AULA_COL_INDEX).search('').draw();
-                
-                // Vuelve a dibujar (aplicando el filtro de fechas limpias)
+            $('#btn-filtrar-fecha').on('click', function() {
                 table.draw();
             });
 
+            $('#btn-limpiar').on('click', function() {
+                $('#filtro-fecha-desde').val('');
+                $('#filtro-fecha-hasta').val('');
+                $campusFilter.val('');
+                $edificioFilter.val('').empty().append(new Option('-- Todos los Edificios --', ''));
+                $aulaFilter.val('').empty().append(new Option('-- Todas las Aulas --', ''));
+                $edificioWrapper.hide();
+                table.search('').columns().search('').draw();
+
+                // Recarga todas las aulas al limpiar
+                // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                allAulas.sort((a, b) => a.nombreAula.localeCompare(b.nombreAula));
+                allAulas.forEach(function(aula) {
+                    // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                    $aulaFilter.append(new Option(aula.nombreAula, aula.nombreAula));
+                });
+            });
+
+            // Carga inicial de aulas (Todas)
+            // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+            allAulas.sort((a, b) => a.nombreAula.localeCompare(b.nombreAula));
+            allAulas.forEach(function(aula) {
+                // <-- ¡CAMBIO AQUÍ! (de .nombre a .nombreAula)
+                $aulaFilter.append(new Option(aula.nombreAula, aula.nombreAula));
+            });
+
         });
+
     </script>
     
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>

@@ -3,56 +3,76 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Aws\DynamoDb\DynamoDbClient;
-use Aws\DynamoDb\Exception\DynamoDbException;
+use Aws\DynamoDb\DynamoDbClient; // 1. Importa el cliente
+use Aws\DynamoDb\Marshaler; // 2. Importa el Marshaler
 
 class UniversidadController extends Controller
 {
     protected $dynamoDb;
+    protected $marshaler;
+    protected $aulasTableName = 'aulas_ecotec_iot';
+
+    // 4. Actualiza el constructor
     public function __construct(DynamoDbClient $dynamoDb)
     {
         $this->dynamoDb = $dynamoDb;
+        $this->marshaler = new Marshaler();
     }
+
+    /**
+     * Muestra el formulario principal (welcome.blade.php)
+     */
     public function showForm()
     {
-        $aulas = $this->getAulas();
+        // 5. Ahora esto SÍ funcionará
+        $aulas = $this->getAllAulas();
 
+        // Asegúrate de que el nombre de la vista ('welcome') sea correcto
         return view('welcome', [
             'aulas' => $aulas
         ]);
     }
-    private function getAulas(): array
+
+    // ==========================================================
+    // --- MÉTODOS FALTANTES (COPIADOS DE AULASCONTROLLER) ---
+    // ==========================================================
+
+    /**
+     * Helper para escanear y obtener todas las aulas.
+     */
+    private function getAllAulas(): array
     {
-        $tableName = 'aulas_ecotec_iot';
-        $formattedAulas = [];
+        $formattedItems = [];
+        $params = ['TableName' => $this->aulasTableName];
 
         try {
-            //  'scan' para obtener todos los items
-            $result = $this->dynamoDb->scan([
-                'TableName' => $tableName
-            ]);
+            do {
+                $result = $this->dynamoDb->scan($params);
 
-            // Formatea los resultados
-            foreach ($result['Items'] as $item) {
-                // Crea un objeto estándar para que el Blade ($aula->nombre) funcione
-                $aulaObj = new \stdClass();
+                foreach ($result['Items'] as $item) {
+                    $formattedItems[] = $this->unmarshalItem($item);
+                }
 
-                // Mapea los campos de DynamoDB a propiedades simples
-                $aulaObj->id = $item['id']['N'] ?? null;
-                $aulaObj->campus = $item['campus']['S'] ?? null;
+                $params['ExclusiveStartKey'] = $result['LastEvaluatedKey'] ?? null;
+            } while ($params['ExclusiveStartKey']);
 
-                // Mapeo clave: 
-                // Lee 'nombreAula' de DynamoDB y lo asigna a 'nombre' para el Blade
-                $aulaObj->nombre = $item['nombreAula']['S'] ?? 'Nombre no disponible';
-
-                $formattedAulas[] = $aulaObj;
-            }
-
-        } catch (DynamoDbException $e) {
+        } catch (\Exception $e) {
             report($e);
             return [];
         }
 
-        return $formattedAulas;
+        return $formattedItems;
+    }
+
+    /**
+     * Helper para convertir un item de DynamoDB a un array PHP.
+     */
+    private function unmarshalItem($item): array
+    {
+        $obj = new \stdClass();
+        foreach ($item as $key => $value) {
+            $obj->$key = $this->marshaler->unmarshalValue($value);
+        }
+        return (array) $obj;
     }
 }
