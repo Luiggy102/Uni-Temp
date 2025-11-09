@@ -134,12 +134,12 @@
                 buttons: [
                     {
                         extend: 'excelHtml5',
-                        text: '<i class="fas fa-file-excel"></i> Exportar a Excel',
+                        text: '<i class="bi bi-file-earmark-excel-fill"></i> Exportar a Excel',
                         className: 'btn btn-success'
                     },
                     {
                         extend: 'pdfHtml5',
-                        text: '<i class="fas fa-file-pdf"></i> Exportar a PDF',
+                        text: '<i class="bi bi-file-earmark-pdf-fill"></i> Exportar a PDF',
                         className: 'btn btn-danger',
                          orientation: 'landscape', // 1. Pone la hoja horizontal
                         pageSize: 'LEGAL' // 2. (Opcional) Usa un papel más ancho
@@ -162,7 +162,8 @@
             $('#filtro-aula').on('change', function() {
                 var valor = $(this).val();
                 // Busca en la columna de Aula (índice 4), con búsqueda exacta
-                table.column(AULA_COL_INDEX).search(valor ? '^' + valor + '$' : '', true, false).draw();
+               //  table.column(AULA_COL_INDEX).search(valor ? '^' + valor + '$' : '', true, false).draw();
+               table.column(AULA_COL_INDEX).search(valor).draw();
             });
 
             // Filtro para rango de fechas

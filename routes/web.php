@@ -6,6 +6,7 @@ use App\Http\Controllers\TemperaturaController;
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Middleware\CheckAdminLogin;
+use App\Http\Controllers\AulasController;
 
 // Route::get('/', [UniversidadController::class, 'showForm']);
 // Route::post('/temperaturas', [TemperaturaController::class, 'store'])
@@ -28,6 +29,7 @@ Route::prefix('admin')->group(function () {
           Route::get('/temperaturas', [DashboardController::class, 'showTemperaturas'])->name('admin.dashboard');
           Route::get('/temperaturas-analiticas', [DashboardController::class, 'showAnaliticas'])
                ->name('admin.analiticas');
+          Route::resource('aulas', AulasController::class)->except(['show']);
 
      });
 });
