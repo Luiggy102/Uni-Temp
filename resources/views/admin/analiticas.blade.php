@@ -8,6 +8,24 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
         <link rel="icon" href="{{ asset('images/favicon.webp') }}">
+    <style>
+        /* Estilos para las tarjetas KPI */
+        .kpi-card .card-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .kpi-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: #6c757d;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -23,7 +41,7 @@
                         <a class="nav-link active" href="{{ route('admin.analiticas') }}">Analíticas</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link " href="{{ route('aulas.index') }}">Gestión de Aulas</a>
+                        <a class="nav-link" href="{{ route('aulas.index') }}">Gestión de Aulas</a>
                     </li>
                 </ul>
             </div>
@@ -35,108 +53,97 @@
     </nav>
 
     <div class="container-fluid mt-4">
+
         <div class="row">
-            <div class="col-lg-8">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        Temperatura Promedio por Aula (°C)
-                    </div>
-                    <div class="card-body">
-                        <canvas id="aulaBarChart"></canvas>
+            <div class="col-md-3">
+                <div class="card shadow-sm kpi-card">
+                    <div class="card-body text-center">
+                        <div class="kpi-label">Temp. Máx (24h)</div>
+                        <div class="kpi-value text-danger" id="kpi-max-temp">--</div>
                     </div>
                 </div>
             </div>
-
-            <div class="col-lg-4">
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        Registros por Campus
-                    </div>
-                    <div class="card-body" style="max-height: 400px; position: relative;">
-                        <canvas id="campusPieChart"></canvas>
+            <div class="col-md-3">
+                <div class="card shadow-sm kpi-card">
+                    <div class="card-body text-center">
+                        <div class="kpi-label">Temp. Promedio (Gral)</div>
+                        <div class="kpi-value text-info" id="kpi-avg-temp">--</div>
                     </div>
                 </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm kpi-card">
+                    <div class="card-body text-center">
+                        <div class="kpi-label">Alertas de Calor (>28°C)</div>
+                        <div class="kpi-value text-warning" id="kpi-alerts">--</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card shadow-sm kpi-card">
+                    <div class="card-body text-center">
+                        <div class="kpi-label">Total Registros</div>
+                        <div class="kpi-value text-muted" id="kpi-total">--</div>
+                    </div>
+                </div>
+            </div>
+        </div> <div class="row mt-4">
+<div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                Temperatura Promedio por Hora del Día
+            </div>
+            <div class="card-body" style="height: 400px;">
+                <canvas id="lineChartTempPorHora"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                Distribución de Registros por Campus
+            </div>
+            <div class="card-body" style="height: 400px;">
+                <canvas id="doughnutChartCampus"></canvas>
             </div>
         </div>
     </div>
 
+        </div> <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        Top 5 Aulas Más Calientes (Promedio)
+                    </div>
+                    <div class="card-body">
+                        <canvas id="barChartTopCalientes"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        Top 5 Aulas Más Frías (Promedio)
+                    </div>
+                    <div class="card-body">
+                        <canvas id="barChartTopFrios"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div> </div> <div id="analytics-data"
+         data-kpis="{{ $kpis ?? '' }}"
+         data-temp-por-hora="{{ $tempPorHora ?? '' }}"
+         data-campus-dist="{{ $campusDist ?? '' }}"
+         data-top-calientes="{{ $topCalientes ?? '' }}"
+         data-top-frios="{{ $topFrios ?? '' }}"
+    ></div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <script>
-        // Función para generar colores aleatorios para los gráficos
-        function getRandomColor() {
-            var r = Math.floor(Math.random() * 255);
-            var g = Math.floor(Math.random() * 255);
-            var b = Math.floor(Math.random() * 255);
-            return `rgba(${r}, ${g}, ${b}, 0.6)`;
-        }
-
-        // --- INICIALIZACIÓN DE GRÁFICOS ---
-        $(document).ready(function() {
-            
-            // --- Gráfico de Pastel (Campus) ---
-            const pieCtx = document.getElementById('campusPieChart').getContext('2d');
-          //   const campusLabels = @json($campusLabels);
-          //   const campusData = @json($campusData);
-          const campusLabels = {!! json_encode($campusLabels) !!};
-            const campusData = {!! json_encode($campusData) !!};
-
-            new Chart(pieCtx, {
-                type: 'pie', // Tipo de gráfico
-                data: {
-                    labels: campusLabels,
-                    datasets: [{
-                        label: 'Registros',
-                        data: campusData,
-                        // Genera un color para cada sección del pastel
-                        backgroundColor: campusLabels.map(() => getRandomColor()),
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-
-            // --- Gráfico de Barras (Aulas) ---
-            const barCtx = document.getElementById('aulaBarChart').getContext('2d');
-          //   const aulaLabels = @json($aulaLabels);
-          //   const aulaData = @json($aulaData);
-const aulaLabels = {!! json_encode($aulaLabels) !!};
-            const aulaData = {!! json_encode($aulaData) !!};
-
-            new Chart(barCtx, {
-                type: 'bar', // Tipo de gráfico
-                data: {
-                    labels: aulaLabels,
-                    datasets: [{
-                        label: 'Temperatura Promedio (°C)',
-                        data: aulaData,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                // Añade '°C' al eje Y
-                                callback: function(value) {
-                                    return value + ' °C'
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    </script>
+    
+    <script src="{{ asset('js/admin/analiticas.js') }}"></script>
 
 </body>
 </html>

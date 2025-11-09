@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Marshaler;
+use Illuminate\Support\Collection;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -113,30 +115,83 @@ class DashboardController extends Controller
      */
     public function showAnaliticas()
     {
-        // 1. Obtener todos los datos y convertirlos a una Colección de Laravel
-        $temperaturas = collect($this->getAllTemperaturas());
+        // 1. Obtiene todos los datos y los convierte a una Colección de Laravel
+        $temperaturas = collect($this->getAllTemperaturas())
+            ->map(function ($item) {
+                // Asegura que los campos clave existan y tengan el tipo correcto
+                if (empty($item['fecha']) || empty($item['temperatura'])) {
+                    return null; // Descarta registros malos
+                }
+                $item['fecha'] = Carbon::parse($item['fecha']);
+                $item['temperatura'] = (float) $item['temperatura'];
+                return $item;
+            })
+            ->filter(); // Elimina cualquier registro nulo
 
-        // 2. Procesar datos para los gráficos
+        // --- 2. CÁLCULO DE MÉTRICAS KPI ---
+        $now = Carbon::now();
+        $recs24h = $temperaturas->where('fecha', '>=', $now->copy()->subDay());
 
-        // --- Gráfico 1: Registros por Campus (para un Pie Chart) ---
-        // Agrupa por 'campus' y cuenta cuántos registros hay en cada grupo
-        $dataCampus = $temperaturas->groupBy('campus')
+        $kpis = [
+            'maxTemp24h' => $recs24h->isNotEmpty() ? $recs24h->max('temperatura') : null,
+            'avgTempAll' => $temperaturas->isNotEmpty() ? round($temperaturas->avg('temperatura'), 1) : null,
+            'alertCount24h' => $recs24h->where('temperatura', '>', 28)->count(), // Alertas > 28°C
+            'totalRecords' => $temperaturas->count(),
+        ];
+
+        // --- 3. GRÁFICO DE LÍNEA: TEMP POR HORA ---
+        $tempPorHora = $temperaturas
+            ->groupBy(fn($item) => $item['fecha']->format('H')) // Agrupa por hora (00, 01, ...)
+            ->map(fn($group) => round($group->avg('temperatura'), 1))
+            ->sortKeys(); // Ordena por hora
+
+        // Rellena las horas faltantes con 'null' para un gráfico limpio
+        $tempPorHoraData = [];
+        for ($i = 0; $i < 24; $i++) {
+            $hour = str_pad($i, 2, '0', STR_PAD_LEFT);
+            $tempPorHoraData[$hour . ':00'] = $tempPorHora->get($hour, null);
+        }
+        $tempPorHoraFinal = [
+            'labels' => array_keys($tempPorHoraData),
+            'data' => array_values($tempPorHoraData),
+        ];
+
+        // --- 4. GRÁFICO DE DONA: REGISTROS POR CAMPUS ---
+        $campusDist = $temperaturas
+            ->groupBy('campus')
             ->map(fn($group) => $group->count());
+        $campusDistFinal = [
+            'labels' => $campusDist->keys(),
+            'data' => $campusDist->values(),
+        ];
 
-        // --- Gráfico 2: Temperatura Promedio por Aula (para un Bar Chart) ---
-        // Agrupa por 'aula', saca el promedio de 'temperatura' y redondea a 2 decimales
-        $dataAvgAula = $temperaturas->groupBy('aula')
-            ->map(fn($group) => round($group->avg('temperatura'), 2))
-            ->sortDesc(); // Ordena del más caliente al más frío
+        // --- 5. GRÁFICOS DE BARRAS: TOP AULAS ---
+        $avgPorAula = $temperaturas
+            ->groupBy('aula') // Asegúrate que tu tabla 'temperaturas' tenga el campo 'aula'
+            ->map(fn($group) => round($group->avg('temperatura'), 1));
 
+        // Top 5 Calientes
+        $topCalientes = $avgPorAula->sortDesc()->take(5);
+        $topCalientesFinal = [
+            'labels' => $topCalientes->keys(),
+            'data' => $topCalientes->values(),
+        ];
 
-        // 3. Pasar los datos ya procesados a la vista
+        // Top 5 Frías
+        $topFrios = $avgPorAula->sort()->take(5);
+        $topFriosFinal = [
+            'labels' => $topFrios->keys(),
+            'data' => $topFrios->values(),
+        ];
+
+        // 6. Pasar los datos YA CODIFICADOS COMO JSON a la vista
         return view('admin.analiticas', [
-            'campusLabels' => $dataCampus->keys(), // -> ['Samborondon', 'Guayaquil', ...]
-            'campusData' => $dataCampus->values(), // -> [120, 55, ...]
-
-            'aulaLabels' => $dataAvgAula->keys(),   // -> ['Aula D', 'Aula B', ...]
-            'aulaData' => $dataAvgAula->values(), // -> [25.5, 24.1, ...]
+            'kpis' => json_encode($kpis),
+            'tempPorHora' => json_encode($tempPorHoraFinal),
+            'campusDist' => json_encode($campusDistFinal),
+            'topCalientes' => json_encode($topCalientesFinal),
+            'topFrios' => json_encode($topFriosFinal),
         ]);
     }
+
 }
