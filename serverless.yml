@@ -1,0 +1,60 @@
+# Nombre de tu servicio (para el stack de CloudFormation)
+service: mi-proyecto-worker
+
+# Usa el plugin de Bref
+plugins:
+  - bref
+  - serverless-dotenv-plugin
+
+provider:
+  name: aws
+  region: us-east-1 # Asegúrate que sea la misma región que tu SQS/Dynamo
+
+  # ESTE es el runtime correcto que Bref usará
+  runtime: provided.al2
+
+  # Variables de entorno para tu función Lambda
+  environment:
+    # --- Clave de Laravel ---
+    APP_KEY: ${dotenv:APP_KEY}
+
+    # --- Configuración de Laravel ---
+    APP_ENV: production
+    LOG_CHANNEL: stderr # ¡Muy importante para ver logs en CloudWatch!
+    SESSION_DRIVER: array
+
+    # --- Tus credenciales de AWS ---
+    # La Lambda necesita permiso para DynamoDB (PutItem)
+    # y para SQS (GetMessage, DeleteMessage - Bref lo usa por ti)
+    AWS_ACCESS_KEY_ID: ${dotenv:AWS_ACCESS_KEY_ID}
+    AWS_SECRET_ACCESS_KEY: ${dotenv:AWS_SECRET_ACCESS_KEY}
+    AWS_DEFAULT_REGION: us-east-1
+
+  # Esta es la política de IAM que tu Lambda usará.
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action: "dynamodb:PutItem"
+          Resource: "arn:aws:dynamodb:us-east-1:820976530117:table/registro_temperaturas_iot"
+        - Effect: "Allow"
+          Action:
+            - "sqs:ReceiveMessage"
+            - "sqs:DeleteMessage"
+            - "sqs:GetQueueAttributes"
+          Resource: "arn:aws:sqs:us-east-1:820976530117:Cola-Temperaturas"
+
+functions:
+  # El nombre de tu función Lambda
+  worker:
+    # 1. El handler apunta a la clase que creamos
+    handler: App\Lambda\SqsHandler
+
+    # 2. LA LÍNEA DE RUNTIME SE ELIMINÓ DE AQUÍ
+
+    # 3. El Disparador (Trigger)
+    events:
+      - sqs:
+          # 4. El ARN de la cola que Bref debe monitorear
+          arn: arn:aws:sqs:us-east-1:820976530117:Cola-Temperaturas
+          batchSize: 5 # Procesar hasta 5 mensajes por invocación

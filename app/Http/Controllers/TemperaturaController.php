@@ -3,23 +3,18 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Aws\DynamoDb\DynamoDbClient;
-use Aws\DynamoDb\Exception\DynamoDbException;
 use Aws\Sqs\SqsClient;
 use Aws\Exception\AwsException;
-use Aws\DynamoDb\Marshaler;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class TemperaturaController extends Controller
 {
-    protected $dynamoDb;
     protected $sqs;
     protected $marshaler;
 
-    public function __construct(DynamoDbClient $dynamoDb, SqsClient $sqs)
+    public function __construct(SqsClient $sqs)
     {
-        $this->dynamoDb = $dynamoDb;
         $this->sqs = $sqs;
     }
 
@@ -29,8 +24,6 @@ class TemperaturaController extends Controller
     public function store(Request $request)
     {
 
-        $marshaler = new Marshaler();
-        $tableName = 'registro_temperaturas_iot';
 
         $itemData = [
             'id' => (string) Str::uuid(),
@@ -38,7 +31,6 @@ class TemperaturaController extends Controller
             'campus' => $request->input('campus'),
             'edificio' => $request->input('edificio'),
 
-            // --- ¡CAMBIO AQUÍ! ---
             // Leemos el 'aula_nombre' del formulario en lugar de 'aula_id'
             'aula' => $request->input('aula_nombre'),
 
@@ -49,13 +41,7 @@ class TemperaturaController extends Controller
         // El resto del código (marshalJson, putItem, try/catch) 
         // se queda exactamente igual.
 
-        $item = $marshaler->marshalJson(json_encode($itemData));
-
         try {
-            $this->dynamoDb->putItem([
-                'TableName' => $tableName,
-                'Item' => $item
-            ]);
 
             $this->sqs->sendMessage([
                 'QueueUrl' => env('SQS_QUEUE_URL'),
@@ -64,13 +50,8 @@ class TemperaturaController extends Controller
 
             return redirect()->back()->with('success', 'Temperatura registrada exitosamente.');
 
-        } catch (DynamoDbException $e) {
-            report($e);
-            return redirect()->back()->with('error', 'Error al registrar la temperatura: ' . $e->getMessage());
         } catch (AwsException $e) {
-            // Error de SQS (DynamoDB SÍ guardó)
             report($e);
-            // Redirige con una advertencia, ya que el dato SÍ se guardó en la DB
             return redirect()->back()->with('warning', 'Temperatura registrada, pero falló al encolar el mensaje: ' . $e->getMessage());
         }
 
