@@ -1,61 +1,39 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Uni-Temp 🌡️
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**Uni-Temp** es una plataforma centralizada diseñada para el monitoreo, registro y análisis de la temperatura en infraestructuras universitarias. El sistema permite a los administradores capturar datos térmicos de aulas distribuidas en diferentes campus y edificios, transformando esos datos en información estratégica a través de un dashboard de analíticas avanzado.
 
-## About Laravel
+## 🏗️ Arquitectura en la Nube (Cloud-Native)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Aunque el ingreso de datos es a través de una interfaz web, el sistema ha sido construido bajo una arquitectura desacoplada y escalable, utilizando servicios de **Amazon Web Services (AWS)**:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+1.  **Frontend Administrativo (Laravel + AWS Beanstalk):** Interfaz robusta para la gestión de aulas y el reporte de datos.
+2.  **Orquestación de Mensajes (AWS SQS):** El registro de temperaturas se procesa de forma asíncrona a través de colas, garantizando que el sistema nunca se bloquee, sin importar el volumen de tráfico.
+3.  **Procesamiento Serverless (AWS Lambda):** Un worker independiente se encarga de procesar los mensajes de la cola y persistirlos.
+4.  **Almacenamiento NoSQL (AWS DynamoDB):** Base de datos de alto rendimiento para el almacenamiento de series temporales de temperatura.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-## Learning Laravel
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## ✨ Características Principales
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+* **Dashboard de Analíticas:** Visualización de promedios por hora, detección de "puntos calientes" y KPIs generales de salud térmica del campus.
+* **Gestión de Aulas (CRUD):** Control total sobre la estructura física de la universidad (Campus, Edificios y Aulas) con filtros inteligentes.
+* **Filtros Encadenados:** Lógica de búsqueda avanzada que adapta los edificios y aulas disponibles según el campus seleccionado.
+* **Reportes Profesionales:** Exportación de datos a Excel y PDF en formato horizontal para auditorías de infraestructura.
+* **Arquitectura "IoT-Ready":** Diseñado para que, en una fase futura, los sensores físicos puedan enviar datos directamente a la cola SQS sin modificar el núcleo del sistema.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🛠️ Stack Tecnológico
 
-## Laravel Sponsors
+* **Framework:** Laravel 11 / PHP 8.x
+* **Base de Datos:** AWS DynamoDB (NoSQL)
+* **Infraestructura:** AWS (SQS, Lambda, Elastic Beanstalk)
+* **Frontend:** Bootstrap 5, Chart.js, DataTables (jQuery)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🚀 Instalación
 
-### Premium Partners
+1. Clona el repositorio.
+2. Configura tus credenciales de AWS en el archivo `.env`.
+3. Ejecuta `composer install` y `npm install`.
+4. Lanza el servidor con `php artisan serve`.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+Desarrollado como una solución escalable para la gestión de climas en entornos educativos.
