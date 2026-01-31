@@ -7,8 +7,6 @@
 
 ## 🏗️ Arquitectura en la Nube (Cloud-Native)
 
-<img width="595" height="577" alt="Screenshot From 2026-01-31 12-10-04" src="https://github.com/user-attachments/assets/de1f4be2-cc3c-474e-9bf4-671cff1dcb20" />
-
 Aunque el ingreso de datos es a través de una interfaz web, el sistema ha sido construido bajo una arquitectura desacoplada y escalable, utilizando servicios de **Amazon Web Services (AWS)**:
 
 1.  **Frontend Administrativo (Laravel + AWS Beanstalk):** Interfaz robusta para la gestión de aulas y el reporte de datos.
