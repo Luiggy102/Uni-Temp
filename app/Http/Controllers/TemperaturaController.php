@@ -23,6 +23,9 @@ class TemperaturaController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate([
+            'temperatura' => 'required|numeric|max:50',
+        ]);
 
 
         $itemData = [
