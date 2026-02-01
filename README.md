@@ -27,7 +27,7 @@ Aunque el ingreso de datos es a través de una interfaz web, el sistema ha sido 
 
 ## 🛠️ Stack Tecnológico
 
-* **Framework:** Laravel 11 / PHP 8.x
+* **Framework:** Laravel 12 / PHP 8.x
 * **Base de Datos:** AWS DynamoDB (NoSQL)
 * **Infraestructura:** AWS (SQS, Lambda, Elastic Beanstalk)
 * **Frontend:** Bootstrap 5, Chart.js, DataTables (jQuery)
